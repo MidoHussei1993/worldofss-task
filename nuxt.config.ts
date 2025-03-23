@@ -32,6 +32,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   modules: ["@primevue/nuxt-module"],
+  build: { transpile: ["primevue"] },
   primevue: {
     options: {
       theme: {

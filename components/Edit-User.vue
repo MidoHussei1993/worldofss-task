@@ -5,26 +5,40 @@
     modal
     class="text-black lg:w-[50%] md:w-[70%] sm:w-[90%]"
   >
-    <h3 class="text-xl font-[700] text-center text-black">Create Person</h3>
+    <h3 class="text-xl font-[700] text-center text-black">Edit Person</h3>
     <p class="text-center text-black">Basic Info</p>
     <form @submit.prevent="submitForm">
       <div class="flex flex-col gap-5">
         <div>
           <label class="text-black mb-4 text-[14px]">Name</label>
           <input
-            v-model="form.name"
+            v-model="form.first_name"
             type="text"
-            class="border border-gray-300 p-2 rounded-md w-full"
+            class="border border-gray-300 p-2 rounded-md w-full text-black"
             placeholder="Enter name"
           />
-          <span class="text-red-600" v-if="v$.name.$error">field requird</span>
+          <span class="text-red-600" v-if="v$.first_name.$error"
+            >field requird</span
+          >
+        </div>
+        <div>
+          <label class="text-black mb-4 text-[14px]">Name</label>
+          <input
+            v-model="form.last_name"
+            type="text"
+            class="border border-gray-300 p-2 rounded-md w-full text-black"
+            placeholder="Enter name"
+          />
+          <span class="text-red-600" v-if="v$.last_name.$error"
+            >field requird</span
+          >
         </div>
         <div>
           <label class="text-black mb-4 text-[14px]">Email</label>
           <input
             v-model="form.email"
             type="email"
-            class="border border-gray-300 p-2 rounded-md w-full"
+            class="border border-gray-300 p-2 rounded-md w-full text-black"
             placeholder="Enter email"
           />
           <span v-if="v$.email.$error" class="text-red-600">
@@ -63,24 +77,7 @@
             </option>
           </select>
           <span v-if="v$.country.$error" class="text-red-600">
-            {{ v$.country.required.$message || "select Country" }}
-          </span>
-        </div>
-
-        <div>
-          <label class="text-black mb-4 text-[14px]">Avatar</label>
-          <input
-            type="file"
-            @change="handleFileUpload"
-            accept="image/jpeg,image/png"
-            class="border border-gray-300 p-2 rounded-md w-full text-black"
-          />
-          <span class="text-red-600" v-if="v$.avatar.$error">
-            {{
-              v$.avatar.required.$message ||
-              v$.avatar.validType.$message ||
-              v$.avatar.validSize.$message
-            }}
+            {{ v$.country.required.$message || "select country" }}
           </span>
         </div>
       </div>
@@ -110,33 +107,38 @@ import { reactive, computed, defineProps, defineEmits } from "vue";
 import { useVuelidate } from "@vuelidate/core";
 import Dialog from "primevue/dialog";
 
-const { visible = false } = defineProps<{
+const props = defineProps<{
   visible?: boolean;
+  first_name: string;
+  last_name: string;
+  email: string;
+  country: string;
+  id: number;
 }>();
-const emit = defineEmits(["closeModal", "created"]);
-const { successMsg } = $toastService();
 const form = reactive({
-  name: "",
+  first_name: "",
+  last_name: "",
   email: "",
   dob: "",
-  avatar: "",
   country: "",
 });
-
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      form.first_name = props.first_name;
+      form.last_name = props.last_name;
+      form.email = props.email;
+      form.country = props.country;
+      form.dob = new Date().toISOString().split("T")[0];
+    }
+  }
+);
+const emit = defineEmits(["closeModal", "edited"]);
 const countries = ["Egypt", "USA", "UK", "Canada", "Saudi Arabia"];
-const allowedTypes = ["image/jpeg", "image/png"];
-const maxFileSize = 2 * 1024 * 1024;
-
-const fileRules = {
-  required,
-  validType: (file: File) =>
-    !file || allowedTypes.includes(file.type) || "Invalid file type!",
-  validSize: (file: File) =>
-    !file || file.size <= maxFileSize || "File is too large (max 2MB)!",
-};
-
 const rules = computed(() => ({
-  name: { required },
+  first_name: { required },
+  last_name: { required },
   email: {
     required,
     email,
@@ -145,19 +147,10 @@ const rules = computed(() => ({
     required,
   },
   country: { required },
-  avatar: {
-    required: fileRules.required,
-    validType: fileRules.validType,
-    validSize: fileRules.validSize,
-  },
 }));
 
 // Use Vuelidate
 const v$ = useVuelidate(rules, form);
-const handleFileUpload = (e) => {
-  const file = e.target.files[0];
-  form.avatar = file;
-};
 
 // Submit function
 const submitForm = async () => {
@@ -165,31 +158,24 @@ const submitForm = async () => {
   try {
     v$.value.$touch();
     if (!v$.value.$invalid) {
-      const { name } = form;
-      const res = await $fetch("https://reqres.in/api/users", {
-        method: "POST",
-        body: { name, job: "developer" },
+      const { first_name, last_name } = form;
+      const res = await $fetch(`https://reqres.in/api/users/${props.id}`, {
+        method: "PUT",
+        body: { name: first_name + " " + last_name, job: "developer" },
         immediate: false, // Prevents auto-execution
       });
-      emit("closeModal");
-      emit("created", {
-        ...form,
-        first_name: form.name.split(" ")[0],
-        last_name: form.name.split(" ")[1],
-        avatar: URL.createObjectURL(new Blob([form.avatar])),
-      });
-      successMsg("User created successfully");
+      emit("edited", { id: props.id, ...form });
     }
   } catch (error) {
     console.error(error);
   }
 };
 const reset = () => {
-  form.name = "";
-  form.email = "";
+  form.first_name = props.first_name;
+  form.last_name = props.last_name;
+  form.email = props.email;
   form.dob = "";
-  form.avatar = "";
-  form.country = "";
+  form.country = props.country;
   emit("closeModal", false);
 };
 </script>

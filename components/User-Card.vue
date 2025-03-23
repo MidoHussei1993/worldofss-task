@@ -1,16 +1,21 @@
 <template>
   <div
-    class="flex items-center justify-start gap-4 p-4 border-b border-gray-400 rounded-[10px] w-full px-4 user-card"
+    class="flex items-center justify-start gap-4 p-4 border border-gray-400 rounded-[10px] w-full px-4 user-card"
   >
     <img
       :src="avatar ? avatar : 'https://reqres.in/img/faces/1-image.jpg'"
       alt="user Image"
       width="150"
       height="150"
-      class="rounded-full border border-4 border-blue-300"
+      class="rounded-full border-4 border-blue-300"
     />
     <div class="flex flex-col items-start justify-center gap-2">
-      <h3 class="text-lg font-[700] text-black">{{ name }}</h3>
+      <h3
+        class="text-lg font-[700] text-black cursor-pointer"
+        @click="emit('edit')"
+      >
+        {{ name }}
+      </h3>
       <small class="text-gray-500">{{ email }}</small>
       <p class="text-black">
         <span class="font-semibold">Age:</span> {{ age }}
@@ -24,7 +29,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { defineProps } from "vue";
+import { defineProps, defineEmits } from "vue";
 const props = defineProps<{
   name: string;
   email: string;
@@ -32,6 +37,7 @@ const props = defineProps<{
   country: string;
   avatar: string;
 }>();
+const emit = defineEmits(["edit"]);
 </script>
 <style>
 .user-card {
